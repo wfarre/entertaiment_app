@@ -75,7 +75,6 @@ flutter:
     - assets/thumbnails/asia-in-24-days/regular/
     - assets/thumbnails/autosport-the-series/regular/
     - assets/thumbnails/below-echo/regular/
-    - assets/thumbnails/community-of-outs/regular/
     - assets/thumbnails/darker/regular/
     - assets/thumbnails/dogs/regular/
     - assets/thumbnails/during-the-hunt/regular/
@@ -97,6 +96,8 @@ flutter:
     - assets/thumbnails/van-life/regular/
     - assets/image-avatar.png
     - images/thumbnails/lone-heart/regular/
+    - assets/thumbnails/community-of-ours/regular/small.jpg
+    - assets/thumbnails/whispering-hill/regular/small.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

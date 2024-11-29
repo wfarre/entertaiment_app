@@ -1,13 +1,11 @@
-import 'dart:ffi';
-
+import 'package:entertaiment_app/components/large_movie_card.dart';
 import 'package:entertaiment_app/constants.dart';
 import 'package:entertaiment_app/services/movieList.dart';
 import 'package:entertaiment_app/services/movie_model.dart';
+import 'package:entertaiment_app/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-
-import '../components/large_movie_card.dart';
-import '../components/movie_card.dart';
+import '../components/movie_grid.dart';
+import '../services/networking.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,45 +14,67 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late List<MovieModel> trendingMovies;
-  var regularMovies = [];
-  late Future<List<MovieModel>> movies;
+  late List<MovieModel> movies = [];
+  late List<MovieModel> filteredMovies = [];
+  String currentPage = 'all';
+  String search = '';
+  String currentTitle = "Recommended for you";
 
   @override
   void initState() {
-    print("hello");
     super.initState();
     getMovies();
   }
 
-  Future<void> getMovies() async {
-    print("get movies");
-    MovieList moviesList = MovieList();
-    movies = moviesList.getMovies();
-    movies.then((data) => {updateMovies(data)});
-    // List<MovieModel> blabla = [];
-    // movies.then((data) {
-    //   print("opps");
-    //   print(data);
-    //   for (var movie in data) {
-    //     if (movie.isTrending) {
-    //       blabla.add(movie);
-    //     }
-    //   }
-    // });
-    // trendingMovies = blabla;
+  void filterMovies(String searchInput, String type, List<MovieModel> movies) {
+    filteredMovies = movies;
+    filteredMovies = filterByType(currentPage, movies);
+    filteredMovies = filterBySearchInput(searchInput, filteredMovies);
+    setState(() {
+      filteredMovies = filteredMovies;
+    });
   }
 
-  void updateMovies(List<MovieModel> movies) {
-    List<MovieModel> blabla = [];
-    for (var movie in movies) {
-      print("nyanya");
-      if (movie.isTrending) {
-        blabla.add(movie);
-      }
+  void setCurrentTitle(String currentPage) {
+    switch (currentPage) {
+      case "movies":
+        setState(() {
+          currentTitle = "Movies";
+        });
+        break;
+      case "series":
+        setState(() {
+          currentTitle = "TV Series";
+        });
+        break;
+      case "favorites":
+        setState(() {
+          currentTitle = "Bookmarked Movies";
+        });
+        break;
+      default:
+        setState(() {
+          currentTitle = "Recommended for you";
+        });
+        break;
     }
-    trendingMovies = blabla as List<MovieModel>;
-    print(trendingMovies);
+  }
+
+  void handlePress(String newCurrentPage) {
+    setState(() {
+      currentPage = newCurrentPage;
+      filterMovies(search, newCurrentPage, movies);
+      setCurrentTitle(newCurrentPage);
+    });
+  }
+
+  Future<void> getMovies() async {
+    MovieList moviesList = MovieList();
+    Future<List<MovieModel>> allMovies = moviesList.getMovies();
+    allMovies.then((data) => setState(() {
+          movies = data;
+          filterMovies(search, currentPage, data);
+        }));
   }
 
   @override
@@ -70,45 +90,57 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const Icon(
               Icons.movie,
-              color: kPrimaryColor,
+              color: Color.fromARGB(255, 136, 129, 129),
             ),
             Row(
               children: [
                 IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
+                    onPressed: () {
+                      handlePress("all");
+                    },
+                    icon: Icon(
                       Icons.grid_view_rounded,
-                      color: Colors.white,
+                      color:
+                          currentPage == "all" ? Colors.white : kSecondaryColor,
                     )),
                 IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.local_movies_rounded),
-                  color: kSecondaryColor,
+                  onPressed: () {
+                    handlePress("movies");
+                  },
+                  icon: Icon(Icons.local_movies_rounded),
+                  color:
+                      currentPage == "movies" ? Colors.white : kSecondaryColor,
                 ),
                 IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
+                    onPressed: () {
+                      handlePress("series");
+                    },
+                    icon: Icon(
                       Icons.tv,
-                      color: kSecondaryColor,
+                      color: currentPage == "series"
+                          ? Colors.white
+                          : kSecondaryColor,
                     )),
                 IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
+                    onPressed: () {
+                      handlePress("favorites");
+                    },
+                    icon: Icon(
                       Icons.bookmark,
-                      color: kSecondaryColor,
+                      color: currentPage == "favorites"
+                          ? Colors.white
+                          : kSecondaryColor,
                     )),
               ],
             ),
-            // IconButton(onPressed: () {}, icon: const Icon(Icons.circle))
-
             Container(
               height: 24.0,
               width: 24.0,
               padding: EdgeInsets.all(1.0),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                   borderRadius: BorderRadius.all(Radius.circular(50.0)),
                   color: Colors.white),
-              child: CircleAvatar(
+              child: const CircleAvatar(
                 backgroundImage: AssetImage("assets/image-avatar.png"),
                 backgroundColor: Colors.white,
               ),
@@ -124,105 +156,99 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(
               height: 24.0,
             ),
-            const TextField(
-                decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: "Search for movies or TV series",
-                    hintStyle: TextStyle(color: kSecondaryColor),
-                    icon: Icon(
-                      Icons.search,
-                      color: Colors.white,
-                    ))),
+            TextField(
+              onChanged: (value) {
+                search = value;
+                filterMovies(search, currentPage, movies);
+              },
+              style: TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: "Search for movies or TV series",
+                hintStyle: TextStyle(color: kSecondaryColor),
+                icon: Icon(
+                  Icons.search,
+                  color: Colors.white,
+                ),
+              ),
+            ),
             const SizedBox(
               height: 24.0,
             ),
-            const Text(
-              "Trending",
+            Visibility(
+              visible: currentPage == "all",
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Trending",
+                    style: TextStyle(color: Colors.white, fontSize: 20.0),
+                  ),
+                  const SizedBox(
+                    height: 24.0,
+                  ),
+                  SizedBox(
+                    height: 140,
+                    child: MovieGrid(
+                      movies: filteredMovies,
+                      isTrendingType: true,
+                      scrollDirection: Axis.horizontal,
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 24.0,
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              currentTitle,
               style: TextStyle(color: Colors.white, fontSize: 20.0),
             ),
             const SizedBox(
               height: 24.0,
             ),
-            SizedBox(
-              height: 140,
-              child: GridBuilder(
-                  movies: movies,
-                  scrollDirection: Axis.horizontal,
-                  isTrendingType: true),
+            Expanded(
+              flex: 1,
+              child: MovieGrid(
+                  movies: currentPage == "favorites"
+                      ? filteredMovies
+                          .where((movie) =>
+                              movie.category.toLowerCase() == "movie")
+                          .toList()
+                      : filteredMovies),
             ),
-            const SizedBox(
-              height: 24.0,
-            ),
-            const Text(
-              "Recommended for you",
-              style: TextStyle(color: Colors.white, fontSize: 20.0),
-            ),
-            const SizedBox(
-              height: 24.0,
-            ),
-            Expanded(flex: 2, child: GridBuilder(movies: movies)),
+            // Visibility(
+            //   visible: true,
+            //   child: Expanded(
+            //     flex: 1,
+            //     child: Column(
+            //       children: [
+            //         const Text(
+            //           "Bookmarked TV Series",
+            //           style: TextStyle(color: Colors.white, fontSize: 20.0),
+            //         ),
+            //         const SizedBox(
+            //           height: 24.0,
+            //         ),
+            //         SizedBox(
+            //           height: double.infinity,
+            //           child: MovieGrid(
+            //               movies: filteredMovies
+            //                   .where((movie) =>
+            //                       movie.category.toLowerCase() == "tv series")
+            //                   .toList()),
+            //         ),
+            //         const SizedBox(
+            //           height: 24.0,
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class GridBuilder extends StatelessWidget {
-  const GridBuilder(
-      {super.key,
-      required this.movies,
-      this.scrollDirection = Axis.vertical,
-      this.isTrendingType = false});
-
-  final Future<List<MovieModel>> movies;
-  final Axis scrollDirection;
-  final bool isTrendingType;
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: movies,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return GridView.builder(
-              shrinkWrap: true,
-              scrollDirection: scrollDirection,
-              itemCount: snapshot.data?.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                childAspectRatio: isTrendingType ? 140 / 240 : 1.0,
-                mainAxisSpacing: 16.0,
-                crossAxisSpacing: 16.0,
-                crossAxisCount: isTrendingType ? 1 : 2,
-              ),
-              itemBuilder: (context, index) {
-                if (isTrendingType) {
-                  if (snapshot.data?[index].isTrending) {
-                    return LargeMovieCard(
-                      title: snapshot.data?[index].title,
-                      picture: snapshot.data?[index].trendingImageUrl,
-                      type: snapshot.data?[index].category,
-                      releasedyear: snapshot.data?[index].year,
-                      rating: snapshot.data?[index].rating,
-                      isBookmarked: snapshot.data?[index].isBookmarked,
-                    );
-                  }
-                } else {
-                  return MovieCard(
-                    title: snapshot.data?[index].title,
-                    picture: snapshot.data?[index].regularImageUrl,
-                    type: snapshot.data?[index].category,
-                    releasedyear: snapshot.data?[index].year,
-                    rating: snapshot.data?[index].rating,
-                    isBookmarked: snapshot.data?[index].isBookmarked,
-                  );
-                }
-              });
-        } else if (snapshot.hasError) {
-          return Text("Error");
-        }
-        return Text("Loading...");
-      },
     );
   }
 }
